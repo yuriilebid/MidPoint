@@ -1,0 +1,241 @@
+.DS_Store
+.idea
+
+
+Okay, so let's say, we dont do any code right now, we are dealing with UML class diagram for backend of my project. Here is files structure:
+
+-------------------------------
+Models (14)
+
+User
+Location
+Activity
+Preferences
+MeetRequest
+Notification
+Review
+GroupMeetRequest
+ActivityType (Enum)
+TransportationMethod (Enum)
+RequestStatus (Enum)
+NotificationType (Enum)
+Preference
+Location
+-------------------------------
+Repositories (8)
+
+UserRepository
+ActivityRepository
+MeetRequestRepository
+NotificationRepository
+ReviewRepository
+PreferencesRepository
+LocationRepository
+GroupMeetRequestRepository
+-------------------------------
+Services (9)
+
+UserService
+ActivityService
+MeetRequestService
+NotificationService
+ETAService
+ReviewService
+GroupMeetRequestService
+PreferenceService
+LocationService
+-------------------------------
+Controllers (8)
+
+UserController
+ActivityController
+MeetRequestController
+NotificationController
+ReviewController
+GroupMeetRequestController
+PreferenceController
+LocationController
+-------------------------------
+Utilities and Configuration (3)
+
+SecurityConfig
+UtilityService
+SecurityFilter
+-------------------------------
+Exception Handling and DTOs (5)
+
+ResourceNotFoundException
+InvalidRequestException
+GlobalExceptionHandler
+UserDTO
+ActivityDTO
+-------------------------------
+Additional (4)
+
+MidpointApplicationTests
+TaskScheduler
+MappingAPIService
+LoggingMonitoringService
+
+
+Users enter two locations—their own and their friend's—and the software parses through a curated dataset of activities, finding one that is equidistant from both parties based on a real-time ETA returned by a third-party mapping API.
+
+Objective
+
+The team is now looking to streamline the process of finding an optimal activity, making it faster, cheaper, and more satisfactory for users—especially as the dataset of activities in each city becomes larger.
+
+Interface Design
+
+The mobile application has four screens accessible via the navigation bar: Meet, Map, Friends, and Profile.
+
+When a user opens the app, they are taken to the Meet screen.
+Users can search for a new midpoint activity between themselves and a friend, view past midpoints, new requests, and notifications.
+The other screens include:
+
+Map: Displays all activities in the city.
+Friends: Lists current and suggested friends.
+Profile: Allows users to edit personal information, preferences, and settings.
+Front-End Design
+
+To find a midpoint, users enter:
+
+A date
+A time
+An activity type
+Two locations
+Transportation methods.
+Users can either input addresses manually or search for a friend’s address via their profile. Results include:
+
+An optimal activity
+Directions
+Real-time ETAs
+A meet-up request option or search for alternatives.
+Backend Design
+
+The application uses a database of activities and their coordinates for each city. When users request a midpoint, the ETA from both locations to every activity in the database is calculated via a third-party API ($1 per 1,000 requests). The activity minimizing commute time for both users is returned.
+
+Challenges:
+The brute force method (calculating ETA for all activities) becomes costlier as the database grows.
+Accommodating more than two users would amplify time and cost.
+Options to Optimize:
+Distributed System
+Pros:
+Faster processing with parallel computing.
+Scalable for larger datasets.
+Cons:
+Expensive to maintain.
+Increased complexity.
+Caching API Requests
+Pros:
+Reduces API call costs.
+Faster for repeat queries.
+Cons:
+May return outdated data due to real-time traffic changes.
+Optimizing the Search Algorithm
+Pros:
+Efficient processing without extensive infrastructure.
+Cons:
+Predictions may not be optimal.
+Collecting User Preferences and Setting Filters
+Pros:
+Customizes experience.
+Reduces computational load.
+Cons:
+Restrictive filters may limit options.
+Future Work
+
+A goal is to adjust the midpoint search to accommodate groups of three or more users.
+
+Comparison of Underlined Points and Manager Questions
+Sensitive Data and Friend Access
+Highlighted Line: “What should ‘friends’ in the app have access to in a user’s profile? How do you suggest data should be secured?”
+Consider limiting address visibility and enabling user consent.
+User Satisfaction and Suggested Midpoints
+Highlighted Line: “Users often reject the first suggested midpoint.”
+Propose multi-criteria selection (e.g., ratings, reviews, price).
+API Cost Concerns
+Highlighted Line: “Explain what impact API usage costs may have.”
+Propose predictive models and reduced API dependencies.
+Algorithm for Groups
+Highlighted Line: “Modify the algorithm for 3+ users.”
+Suggest weighted averages or cluster-based midpoint calculation.
+Optimization Priorities
+Highlighted Line: “Which optimization option would you prioritize?”
+Recommend cost-efficient and scalable solutions, such as algorithm improvements.
+
+Now lets divide all the project into names of all potential class we will have. How many of them will we have? 10 - 40?
+
+
+│   │   │   └── src/
+│   │   │       └── midpoint/
+│   │   │           ├── MidpointApplication.java
+│   │   │           ├── config/
+│   │   │           │   ├── SecurityConfig.java
+│   │   │           │   └── SecurityFilter.java
+│   │   │           ├── controller/
+│   │   │           │   ├── UserController.java
+│   │   │           │   ├── ActivityController.java
+│   │   │           │   ├── MeetRequestController.java
+│   │   │           │   ├── NotificationController.java
+│   │   │           │   ├── ReviewController.java
+│   │   │           │   ├── GroupMeetRequestController.java
+│   │   │           │   ├── PreferenceController.java
+│   │   │           │   └── LocationController.java
+│   │   │           ├── dto/
+│   │   │           │   ├── UserDTO.java
+│   │   │           │   └── ActivityDTO.java
+│   │   │           ├── exception/
+│   │   │           │   ├── GlobalExceptionHandler.java
+│   │   │           │   ├── ResourceNotFoundException.java
+│   │   │           │   └── InvalidRequestException.java
+│   │   │           ├── model/
+│   │   │           │   ├── User.java
+│   │   │           │   ├── Location.java
+│   │   │           │   ├── Activity.java
+│   │   │           │   ├── Preferences.java
+│   │   │           │   ├── MeetRequest.java
+│   │   │           │   ├── Notification.java
+│   │   │           │   ├── Review.java
+│   │   │           │   ├── GroupMeetRequest.java
+│   │   │           │   └── enums/
+│   │   │           │       ├── ActivityType.java
+│   │   │           │       ├── TransportationMethod.java
+│   │   │           │       ├── RequestStatus.java
+│   │   │           │       └── NotificationType.java
+│   │   │           ├── repository/
+│   │   │           │   ├── UserRepository.java
+│   │   │           │   ├── ActivityRepository.java
+│   │   │           │   ├── MeetRequestRepository.java
+│   │   │           │   ├── NotificationRepository.java
+│   │   │           │   ├── ReviewRepository.java
+│   │   │           │   ├── PreferencesRepository.java
+│   │   │           │   ├── LocationRepository.java
+│   │   │           │   └── GroupMeetRequestRepository.java
+│   │   │           ├── service/
+│   │   │           │   ├── UserService.java
+│   │   │           │   ├── ActivityService.java
+│   │   │           │   ├── MeetRequestService.java
+│   │   │           │   ├── NotificationService.java
+│   │   │           │   ├── ETAService.java
+│   │   │           │   ├── ReviewService.java
+│   │   │           │   ├── GroupMeetRequestService.java
+│   │   │           │   ├── PreferenceService.java
+│   │   │           │   └── LocationService.java
+│   │   │           ├── scheduler/
+│   │   │           │   └── TaskScheduler.java
+│   │   │           ├── integration/
+│   │   │           │   └── MappingAPIService.java
+│   │   │           ├── util/
+│   │   │           │   └── UtilityService.java
+│   │   │           └── logging/
+│   │   │               └── LoggingMonitoringService.java
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       └── data.sql
+│   └── test/
+│       └── java/
+│           └── com/
+│               └── midpoint/
+│                   └── MidpointApplicationTests.java
+├── pom.xml
+└── README.md

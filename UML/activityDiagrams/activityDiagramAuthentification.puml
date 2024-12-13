@@ -1,0 +1,22 @@
+@startuml
+start
+:Display "Login or Register" Page;
+if (User selects "Login") then (yes)
+  repeat
+    :Ask for Login and Password;
+    :Authenticate User;
+  repeat while (Authentication Successful?) is (no)
+else (no)
+  repeat
+    :Ask for Registration Details;
+    :Ask for Email;
+  repeat while (Email is Already Used?) is (yes)
+  repeat
+    :Ask for Password;
+  repeat while (Password requirements met?) is (no)
+  :Ask for Name, Favourite Activities, City of Residence, Preferred Price Range;
+  :Create New Account;
+endif
+:Main Feed Page;
+stop
+@enduml

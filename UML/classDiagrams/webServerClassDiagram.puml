@@ -1,0 +1,92 @@
+@startuml
+title WebServer Class Diagram
+
+class WebServer {
+  -controllers : List<Controller>
+  -coreClient : CoreAPI
+  -cacheClient : CacheClient
+  +handleRequest(request : HttpRequest) : HttpResponse
+  +start() : void
+}
+
+class CoreAPI {
+  +getEventDetails(eventId : int) : EventDTO
+  +getPersonalizedFeed(userId : int, count : int, offset : int = 0) : List<EventDTO>
+  +dislikeEvent(userId : int, eventId : int) : void
+  +likeEvent(userId : int, eventId : int) : void
+  +addEventToSchedule(userId : int, eventId : int) : void
+  +getUserProfile(userId : int) : UserProfileDTO
+  +getUserSchedule(userId : int) : List<ScheduleItemDTO>
+}
+
+interface CacheClient {
+  +getTopEventsFromCache(need : int) : List<EventDTO>
+  +addTopEvents(events : List<EventDTO>) : void
+  +incrementEventPopularity(eventId : int) : void
+  +decrementEventPopularity(eventId : int) : void
+}
+
+abstract class Controller {
+  +handle(request : HttpRequest) : HttpResponse
+}
+
+class FeedController extends Controller {
+  -coreAPI : CoreAPI
+  -cache : CacheClient
+  +handle(request : HttpRequest) : HttpResponse
+}
+
+class EventController extends Controller {
+  -coreAPI : CoreAPI
+  -cache : CacheClient
+  +handle(request : HttpRequest) : HttpResponse
+}
+
+class UserController extends Controller {
+  -coreAPI : CoreAPI
+  +handle(request : HttpRequest) : HttpResponse
+}
+
+class HttpRequest {
+  +path : String
+  +method : String
+  +params : Map<String,String>
+  +body : String
+}
+
+class HttpResponse {
+  +status : int
+  +body : String
+}
+
+class EventDTO {
+  +id : int
+  +name : String
+  +description : String
+  +date : Date
+  +price : float
+  +tags : List<String>
+  +address : String
+}
+
+class UserProfileDTO {
+  +userId : int
+  +name : String
+  +preferences : PreferencesDTO
+}
+
+class ScheduleItemDTO {
+  +eventId : int
+  +scheduledDate : Date
+}
+
+WebServer -> Controller
+WebServer -> CoreAPI
+WebServer -> CacheClient
+FeedController -> CoreAPI
+FeedController -> CacheClient
+EventController -> CoreAPI
+EventController -> CacheClient
+UserController -> CoreAPI
+
+@enduml

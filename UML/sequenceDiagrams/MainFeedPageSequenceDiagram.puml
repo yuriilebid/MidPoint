@@ -1,0 +1,225 @@
+@startuml
+actor User
+participant "Front-End (FE)" as FE
+participant APIGateway
+participant LoadBalancer
+participant WebServer
+participant "EntertainmentPlanner\nCore" as Core
+participant "Aggregator\nService#" as Agg
+database "EntertainmentPlanner\nDB" as EPDB
+database "Users DB" as UDB
+participant "Recommendation\nSystem" as RS
+collections "Local Cache\n(Top Events)" as Cache
+
+== Initial Feed Load ==
+User -> FE: Open Main Feed Page
+FE -> APIGateway: GET /api/feed?\ncount=10
+APIGateway -> LoadBalancer: Route request
+LoadBalancer -> WebServer: /feed?\ncount=10
+
+note over WebServer: Getting\nRecommendations
+WebServer -> Core: getPersonalizedFeed(user, 10)
+Core -> UDB: SELECT user\npreferences
+UDB --> Core: Return user\npreferences
+Core -> Agg: fetchRecommendedEvents(\npreferences, limit=10)
+Agg -> EPDB: SELECT recommended events\nby user prefs (up to 10)
+EPDB --> Agg: e.g. 6 events
+Agg --> Core: 6 recommended events
+Core --> WebServer: 6 recommended events
+
+alt recommended < 10
+  note over WebServer: Not enough recommended\n events - use cache
+  WebServer -> Cache: getTopEventsFromCache(need=4)
+  Cache --> WebServer: 2 events from cache
+
+  alt still < 10
+    note over WebServer: Cache not enough\n request Aggregator
+    WebServer -> Core: fetchMoreTopEvents(2)
+    Core -> Agg: fetchTopEvents(2)
+    Agg -> EPDB: SELECT top 2 events by\npopularity
+    EPDB --> Agg: 2 popular events
+    Agg --> Core: 2 popular events
+    Core --> WebServer: 2 popular events
+
+    note over WebServer: Update cache\nwith new top events
+    WebServer -> Cache: Add new top events
+    Cache --> WebServer: Cache updated
+  end
+else recommended == 10
+  ' Already full list
+end
+
+note over WebServer: Now have 10 events\n(6 rec + 2 cache + 2 DB)
+WebServer --> LoadBalancer: Return 10 events
+LoadBalancer --> APIGateway: 10 events
+APIGateway --> FE: 10 events
+FE -> User: Display 10 Events
+
+== User Scrolls For More ==
+loop While user scrolls
+  User -> FE: Scroll end
+  FE -> APIGateway: GET /api/feed?\ncount=10&offset=...
+  APIGateway -> LoadBalancer: Route
+  LoadBalancer -> WebServer: /feed?\ncount=10&offset=...
+
+  note over WebServer: Getting next recommended events
+  WebServer -> Core: getPersonalizedFeed(user, 10, offset)
+  Core -> Agg: fetchRecommendedEvents(\npreferences, limit=10, offset)
+  Agg -> EPDB: SELECT next recommended events
+  EPDB --> Agg: e.g. 5 recommended events
+  Agg --> Core: 5 recommended events
+  Core --> WebServer: 5 recommended events
+
+  alt recommended < 10
+    note over WebServer: Use cache for more events
+    WebServer -> Cache: getTopEventsFromCache(need=5)
+    Cache --> WebServer: e.g. 3 events
+
+    alt still < 10
+      note over WebServer: Cache still not enough\n request Aggregator
+      WebServer -> Core: fetchMoreTopEvents(2)
+      Core -> Agg: fetchTopEvents(2)
+      Agg -> EPDB: SELECT top 2 events by\npopularity
+      EPDB --> Agg: 2 events
+      Agg --> Core: 2 events
+      Core --> WebServer: 2 events
+
+      note over WebServer: Update cache
+      WebServer -> Cache: Add these top events
+      Cache --> WebServer: updated
+    end
+  else recommended == 10
+    ' full list
+  end
+
+  WebServer --> LoadBalancer: 10 events
+  LoadBalancer --> APIGateway: events
+  APIGateway --> FE: events
+  FE -> User: Load & Display More
+end
+
+== User Selects Event ==
+loop While user selects event
+  User -> FE: Select event
+  FE -> APIGateway: GET /api/event/{id}
+  APIGateway -> LoadBalancer: Route
+  LoadBalancer -> WebServer: /event/{id}
+  WebServer -> Core: getEventDetails(id)
+  Core -> Agg: fetchEventDetails(id)
+  Agg -> EPDB: SELECT event details\nby id
+  EPDB --> Agg: Event details
+  Agg --> Core: Detailed info
+  Core --> WebServer: details
+  WebServer --> LoadBalancer: details
+  LoadBalancer --> APIGateway: details
+  APIGateway --> FE: details
+  FE -> User: Show Event Details
+
+  alt User chooses "Dislike"
+    User -> FE: Click "Dislike"
+    FE -> APIGateway: POST /api/event/{id}/dislike
+    APIGateway -> LoadBalancer: Route
+    LoadBalancer -> WebServer: /event/{id}/dislike
+    WebServer -> Core: updateInterestTags(-interest)
+    Core -> RS: updateUserPreferences(\nnegative)
+    RS --> Core: updated
+    Core --> WebServer: Success
+
+    WebServer -> Cache: decrementEventPopularity(id)
+    Cache --> WebServer: OK
+
+    WebServer --> LoadBalancer: OK
+    LoadBalancer --> APIGateway: OK
+    APIGateway --> FE: OK
+    FE -> User: Updated (dislike)
+  else User chooses "Like"
+    User -> FE: Click "Like"
+    FE -> APIGateway: POST /api/event/{id}/like
+    APIGateway -> LoadBalancer: Route
+    LoadBalancer -> WebServer: /event/{id}/like
+    WebServer -> Core: updateInterestTags(+interest)
+    Core -> RS: updateUserPreferences(\npositive)
+    RS --> Core: updated
+    Core --> WebServer: Success
+
+    WebServer -> Cache: incrementEventPopularity(id)
+    Cache --> WebServer: OK
+
+    WebServer --> LoadBalancer: OK
+    LoadBalancer --> APIGateway: OK
+    APIGateway --> FE: OK
+    FE -> User: Updated (like)
+  else User chooses "Add"
+    User -> FE: Click "Add"
+    FE -> APIGateway: POST /api/event/{id}/add_to_schedule
+    APIGateway -> LoadBalancer: Route
+    LoadBalancer -> WebServer: /event/{id}/add_to_schedule
+
+    WebServer -> Core: isEventInUserSchedule(user,id)
+    Core -> UDB: SELECT FROM user_schedule\nWHERE user_id=? AND event_id=?
+    UDB --> Core: record or null
+
+    alt already in schedule?
+      Core --> WebServer: event in schedule
+      WebServer --> LoadBalancer: Conflict
+      LoadBalancer --> APIGateway: Conflict
+      APIGateway --> FE: "Event already in schedule"
+      FE -> User: "Event already added"
+    else not in schedule
+      Core -> UDB: INSERT event into schedule
+      UDB --> Core: OK
+
+      Core -> Agg: fetchEventTags(eventId)
+      Agg -> EPDB: SELECT tags\nWHERE event_id=?
+      EPDB --> Agg: tags (e.g. music, nightlife)
+      Agg --> Core: tags
+
+      Core -> RS: updateUserPreferences(\npositive by tags)
+      RS --> Core: updated
+      Core --> WebServer: Success
+
+      WebServer -> Cache: incrementEventPopularity(id)
+      Cache --> WebServer: OK
+
+      WebServer --> LoadBalancer: OK
+      LoadBalancer --> APIGateway: OK
+      APIGateway --> FE: OK
+      FE -> User: Redirect to Add Activity Page
+    end
+end
+
+== Dock Menu ==
+alt User chooses "My Profile"
+  User -> FE: My Profile
+  FE -> APIGateway: GET /api/user/profile
+  APIGateway -> LoadBalancer: Route
+  LoadBalancer -> WebServer: /user/profile
+  WebServer -> Core: getUserProfile(user)
+  Core -> UDB: SELECT user profile
+  UDB --> Core: profile data
+  Core --> WebServer: profile
+  WebServer --> LoadBalancer: OK
+  LoadBalancer --> APIGateway: OK
+  APIGateway --> FE: profile
+  FE -> User: Display Profile
+else User chooses "My Schedule"
+  User -> FE: My Schedule
+  FE -> APIGateway: GET /api/user/schedule
+  APIGateway -> LoadBalancer: Route
+  LoadBalancer -> WebServer: /user/schedule
+  WebServer -> Core: getUserSchedule(user)
+  Core -> UDB: SELECT user schedule
+  UDB --> Core: schedule data
+  Core --> WebServer: schedule
+  WebServer --> LoadBalancer: OK
+  LoadBalancer --> APIGateway: OK
+  APIGateway --> FE: schedule data
+  FE -> User: Display Schedule
+else User chooses "Find Activity"
+  User -> FE: Find Activity
+  FE -> User: Display Finder Page
+else User chooses "Feed"
+  User -> FE: Feed
+  FE -> User: Display Feed Page
+end
+@enduml

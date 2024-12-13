@@ -1,0 +1,237 @@
+@startuml
+
+!theme plain
+skinparam packageStyle rectangle
+
+start
+
+'==============================
+' AuthentificationPage Diagram
+'==============================
+partition "AuthentificationPage" {
+  :Display "Login or Register" Page;
+  if (User selects "Login") then (yes)
+    repeat
+      :Ask for Login and Password;
+      :Authenticate User;
+    repeat while (Authentication Successful?) is (no)
+  else (no)
+    repeat
+      :Ask for Registration Details;
+      :Ask for Email;
+    repeat while (Email is Already Used?) is (yes)
+
+    repeat
+      :Ask for Password;
+    repeat while (Password requirements met?) is (no)
+
+    :Ask for Name, Favourite Activities,
+     City of Residence, Preferred Price Range;
+    :Create New Account;
+  endif
+
+  ' Once authenticated or registered successfully:
+  :Navigate to Main Feed Page;
+}
+
+'==============================
+' MainFeedPage Diagram
+'==============================
+partition "MainFeedPage" {
+  :Request 10 Most Popular Events/Activities from Server;
+  :Display Events/Activities;
+
+  while (User scrolling to the end of list?) is (yes)
+    :Request Additional 10 Events/Activities from Server;
+    :Load and Display Additional Events/Activities;
+  endwhile
+
+  while (User selects an Event/Activity?) is (yes)
+    :Display Event/Activity Details;
+    switch (Selected Action)
+      case ("Dislike")
+        :Reduce Interest in Event Tags;
+        :Update Recommendation System;
+        'Return to MainFeedPage display
+      case ("Like")
+        :Increase Interest in Event Tags;
+        :Update Recommendation System;
+        'Return to MainFeedPage display
+      case ("Add")
+        :Redirect to Add Activity Page;
+        stop
+    endswitch
+  endwhile
+
+  ' Dock Menu interactions from Main Feed
+  switch (User interacting with Dock Menu options)
+    case ("My Profile")
+      :Navigate to Profile Page;
+      stop
+    case ("My Schedule")
+      :Navigate to Schedule Page;
+      stop
+    case ("Find Activity")
+      :Navigate to Activity Finder Page;
+      stop
+    case ("Feed")
+      :Refresh/Re-display Feed Page;
+      ' Remain on MainFeedPage
+  endswitch
+}
+
+'==============================
+' FinderPage Diagram
+'==============================
+partition "FinderPage" {
+  :Display Activity Finder Page;
+
+  :Show Question 1: "How many people will be?";
+  if (User selects "Skip") then (yes)
+    :Use default value from User Profile;
+  else (no)
+    :User selects the number of people;
+  endif
+
+  :Show Question 2: "What is the range of time?";
+  if (User selects "Skip") then (yes)
+    :Use default value from User Profile;
+  else (no)
+    :User selects the time range;
+  endif
+
+  :Show Question 3: "Preferred activity type?";
+  if (User selects "Skip") then (yes)
+    :Use default value from User Profile;
+  else (no)
+    :User selects one or more activity types;
+  endif
+
+  :Show Question 4: "Preferred price range?";
+  if (User selects "Skip") then (yes)
+    :Use default value from User Profile;
+  else (no)
+    :User selects a price range;
+  endif
+
+  :Submit All Selections and Request Matching Activities from Service;
+  if (Server Response Fails?) then (yes)
+    :Display Error Message:
+    "Unable to fetch activities. Please try again.";
+    stop
+  else (no)
+    :Display Matching Activities;
+  endif
+
+  while (User selects an Activity?) is (yes)
+    :Redirect to Activity Details Page;
+    ' After viewing details, user might return here or go elsewhere
+  endwhile
+
+  ' Dock Menu interactions from Finder
+  switch (User interacting with Dock Menu options)
+    case ("My Profile")
+      :Navigate to Profile Page;
+      stop
+    case ("My Schedule")
+      :Navigate to Schedule Page;
+      stop
+    case ("Find Activity")
+      :Display Finder Page again;
+      ' Remain on FinderPage
+    case ("Feed")
+      :Navigate to Feed Page (MainFeedPage);
+      stop
+  endswitch
+}
+
+'==============================
+' ProfilePage Diagram
+'==============================
+partition "ProfilePage" {
+  :Display User Profile Page
+   with Profile Description;
+
+  if (User selects "Edit") then (yes)
+    :Display Editable Fields;
+    repeat
+      :User selects a field to edit;
+      switch (Field to Edit)
+        case ("Profile Name")
+          :Update Profile Name;
+        case ("City")
+          :Update City;
+        case ("Preferred Price")
+          :Update Preferred Price Range;
+        case ("Preferred Activity Manner")
+          :Update Activity Preferences;
+      endswitch
+    repeat while (User press button "done"?) is (no)
+    :Save Changes;
+  else (no)
+    :Do Nothing;
+  endif
+
+  ' Dock Menu interactions from Profile Page
+  switch (User interacting with Dock Menu options)
+    case ("My Profile")
+      :Refresh Profile Page;
+      ' Remain on ProfilePage
+    case ("My Schedule")
+      :Navigate to Schedule Page;
+      stop
+    case ("Find Activity")
+      :Navigate to Finder Page;
+      stop
+    case ("Feed")
+      :Navigate to Feed Page;
+      stop
+  endswitch
+}
+
+'==============================
+' SchedulePage Diagram
+'==============================
+partition "SchedulePage" {
+  :Display Schedule Page;
+  :Show List of Scheduled Activities;
+
+  while (User selects an activity?) is (yes)
+    :Display Activity Options (Details, Invite, Edit);
+    switch (User selects an option)
+      case ("Details")
+        :Redirect to Activity Details Page;
+        ' After details, user may come back
+      case ("Invite")
+        :Open System Share Window;
+        :Generate and Share Activity Link;
+      case ("Edit")
+        while (delete button pressed)
+          :Show checkmarks next to each event;
+          :Delete all selected activities;
+        endwhile
+    endswitch
+  endwhile
+
+  while (User interacting with Dock Menu?) is (yes)
+    switch (User interacting with Dock Menu options)
+      case ("My Profile")
+        :Navigate to Profile Page;
+        stop
+      case ("My Schedule")
+        :Refresh Schedule Page;
+        ' Remain on SchedulePage
+      case ("Find Activity")
+        :Navigate to Finder Page;
+        stop
+      case ("Feed")
+        :Navigate to Feed Page;
+        stop
+    endswitch
+  endwhile
+
+  :User exits Schedule Page;
+  stop
+}
+
+@enduml

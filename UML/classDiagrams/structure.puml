@@ -1,0 +1,51 @@
+@startuml
+
+rectangle "Clients" {
+  component "Mobile App" as Mobile
+  component "Web App" as Web
+  component "Desktop App" as Desktop
+}
+
+rectangle "API Layer" {
+  component "APIGateway" as APIGateway
+  component "LoadBalancer" as LoadBalancer
+}
+
+rectangle "Back-End Services" {
+  component "WebServer Service" as WebServer
+  component "EntertainmentPlannerCore Service" as Core
+  component "Aggregator Service#" as Agg
+  component "Recommendation System Service" as RS
+  component "JS Parser" as Flamingo
+  component "EntertainmentPlannerUntimer Service" as Untimer
+}
+
+rectangle "Data Sources" {
+  database "EntertainmentPlanner DB" as EPDB
+  database "EntertainmentDataFirmSupplier DB" as EDFS
+  artifact "Azure Cache (Redis)" as Redis
+  artifact "Google MAPS API" as GMaps
+  database "Users DB" as UDB
+}
+
+' Relationships (High-level)
+Mobile --> APIGateway
+Web --> APIGateway
+Desktop --> APIGateway
+
+APIGateway --> LoadBalancer
+LoadBalancer --> WebServer
+WebServer --> Core
+Core --> Agg
+Core --> RS
+Agg --> EPDB
+Agg --> EDFS
+Agg --> Redis
+Flamingo --> EDFS
+Flamingo --> GMaps
+Untimer --> EDFS
+
+Core --> UDB
+Agg --> EPDB
+
+@enduml

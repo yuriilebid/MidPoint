@@ -1,0 +1,41 @@
+@startuml
+start
+:Display Schedule Page;
+:Show List of Scheduled Activities;
+
+while (User selects an activity?) is (yes)
+  :Display Activity Options (Details, Invite, Edit);
+  switch (User selects an option)
+    case ("Details")
+      :Redirect to Activity Details Page;
+    case (\n"Invite")
+      :Open System Share Window;
+      :Generate and Share Activity Link;
+    case ("Edit")
+        while (delete button pressed)
+            :Show checkmarks on a side of each event;
+            :Delete all selected activities;
+        endwhile
+    endswitch
+endwhile
+
+while (User interacting with Dock Menu?) is (yes)
+  switch (User interacting with Dock Menu options)
+    case ("My Profile")
+      :Display Profile Page;
+      stop
+    case (\n"My Schedule")
+      :Display Schedule Page;
+      stop
+    case (\n"Find Activity")
+      :Display Activity Finder Page;
+      stop
+    case ("Feed")
+      :Display Feed Page;
+      stop
+    endswitch
+endwhile
+
+:User exits Schedule Page;
+stop
+@enduml

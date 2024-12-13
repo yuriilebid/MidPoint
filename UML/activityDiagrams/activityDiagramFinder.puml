@@ -1,0 +1,61 @@
+@startuml
+start
+:Display Activity Finder Page;
+
+:Show Question 1: "How many people will be?";
+if (User selects "Skip") then (yes)
+  :Use default value from User Profile;
+else (no)
+  :User selects the number of people;
+endif
+
+:Show Question 2: "What is the range of time?";
+if (User selects "Skip") then (yes)
+  :Use default value from User Profile;
+else (no)
+  :User selects the time range;
+endif
+
+:Show Question 3: "Preferred activity type?";
+if (User selects "Skip") then (yes)
+  :Use default value from User Profile;
+else (no)
+  :User selects one or more activity types;
+endif
+
+:Show Question 4: "Preferred price range?";
+if (User selects "Skip") then (yes)
+  :Use default value from User Profile;
+else (no)
+  :User selects a price range;
+endif
+
+:Submit All Selections and Request Matching Activities from Service;
+if (Server Response Fails?) then (yes)
+  :Display Error Message:
+  "Unable to fetch activities.
+  Please try again.";
+  stop
+else (no)
+:Display Matching Activities;
+endif
+
+while (User selects an Activity?) is (yes)
+  :Redirect to Activity Details Page;
+endwhile
+
+switch (User interacting with Dock Menu options)
+  case ("My Profile")
+    :Display Profile Page;
+    stop
+  case ("\nMy Schedule")
+    :Display Schedule Page;
+    stop
+  case ("\nFind Activity")
+    :Display Activity Finder Page;
+    stop
+  case ("Feed")
+    :Display Feed Page;
+    stop
+endswitch
+@enduml

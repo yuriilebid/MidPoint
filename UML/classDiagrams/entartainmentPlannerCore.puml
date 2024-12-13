@@ -1,0 +1,69 @@
+@startuml
+title EntertainmentPlannerCore Class Diagram
+
+class EntertainmentPlannerCore {
+  -userRepository : UserRepository
+  -aggregatorClient : AggregatorClient
+  -recommendationSystem : RecommendationSystemClient
+  +getEventDetails(eventId : int) : Event
+  +getPersonalizedFeed(userId : int, count : int, offset : int) : List<Event>
+  +dislikeEvent(userId : int, eventId : int) : void
+  +likeEvent(userId : int, eventId : int) : void
+  +addEventToSchedule(userId : int, eventId : int) : void
+  +getUserProfile(userId : int) : User
+  +getUserSchedule(userId : int) : List<ScheduleItem>
+}
+
+class UserRepository {
+  +getUserById(userId : int) : User
+  +getUserPreferences(userId : int) : Preferences
+  +getUserSchedule(userId : int) : List<ScheduleItem>
+  +addEventToSchedule(userId : int, eventId : int) : void
+}
+
+class AggregatorClient {
+  +fetchEventDetails(eventId : int) : Event
+  +fetchRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<Event>
+  +fetchTopEvents(limit : int) : List<Event>
+}
+
+class RecommendationSystemClient {
+  +updateUserPreferences(userId : int, tags : List<String>, positive : boolean) : void
+  +getRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<Event>
+}
+
+class User {
+  +userId : int
+  +name : String
+  +preferences : Preferences
+}
+
+class Preferences {
+  +preferredActivities : List<String>
+  +priceRange : String
+  +activityStyle : String   <<e.g. "passive","active","calm","sport">>
+}
+
+class Event {
+  +id : int
+  +name : String
+  +description : String
+  +tags : List<String>
+  +date : Date
+  +price : float
+  +address : String
+}
+
+class ScheduleItem {
+  +eventId : int
+  +userId : int
+  +scheduledDate : Date
+}
+
+EntertainmentPlannerCore -> UserRepository
+EntertainmentPlannerCore -> AggregatorClient
+EntertainmentPlannerCore -> RecommendationSystemClient
+
+UserRepository -> User
+UserRepository -> ScheduleItem
+@enduml

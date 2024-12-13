@@ -1,0 +1,31 @@
+@startuml
+start
+:         Display Event Description Page
+Address, Text Description, Date, Price Range, Tags;
+
+while (User interacts with buttons?) is (yes)
+  switch (User selects a button)
+    case ("Call")
+      :Initiate a Call to the Event Organizer;
+    case ("Show in Maps")
+      :Open Map Application with Event Address;
+    case ("Share")
+      :Open System Share Window;
+      :Generate and Share Event Link;
+    case ("Like")
+      :Increase Interest in Event Tags;
+      :Update Recommendation System;
+    case ("Dislike")
+      :Reduce Interest in Event Tags;
+      :Update Recommendation System;
+    endswitch
+endwhile
+
+if (User presses "Back") then (yes)
+  :Redirect to Previous Page;
+else (no)
+  :Stay on Event Description Page;
+endif
+
+stop
+@enduml

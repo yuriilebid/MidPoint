@@ -1,0 +1,400 @@
+@startuml
+top to bottom direction
+
+skinparam packageStyle rectangle
+skinparam ranksep 30
+skinparam nodesep 30
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 300
+
+'===========================================================
+' AggregatorService.puml
+'===========================================================
+title Aggregator Service Class Diagram
+
+package "AggregatorService" {
+    class AggregatorService {
+      -epdbClient : EPDBClient
+      -edfsdbClient : EDFSDBClient
+      -flamingoClient : FlamingoClient
+      -redisCache : RedisCacheClient
+      +fetchEventDetails(eventId : int) : EventData
+      +fetchRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<EventData>
+      +fetchTopEvents(limit : int) : List<EventData>
+    }
+
+    class EPDBClient {
+      +getEventById(eventId : int) : EventData
+      +getRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<EventData>
+      +getTopEvents(limit : int) : List<EventData>
+    }
+
+    class EDFSDBClient {
+      +getEventData(type : String, location : String) : EventData
+      +updateEventData(eventId : int, data : EventData) : void
+    }
+
+    class FlamingoClient {
+      +requestDataUpdate(eventId : int) : EventData
+    }
+
+    interface RedisCacheClient {
+      +get(key : String) : Object
+      +set(key : String, value : Object, ttl : int) : void
+    }
+
+    class EventData {
+      +id : int
+      +name : String
+      +description : String
+      +tags : List<String>
+      +date : Date
+      +price : float
+      +location : String
+      +status : DataStatus
+    }
+
+    enum DataStatus {
+      Normal
+      Old
+      NoData
+    }
+
+    AggregatorService --> EPDBClient
+    AggregatorService --> EDFSDBClient
+    AggregatorService --> FlamingoClient
+    AggregatorService --> RedisCacheClient
+}
+
+note top of AggregatorService
+  **Facade Pattern**:
+  The AggregatorService acts as a facade hiding the complexity
+  of interacting with EPDBClient, EDFSDBClient, FlamingoClient, and RedisCacheClient.
+  It decides when to fetch from cache, when to request updates, and when to retrieve
+  event data directly. This simplifies data retrieval logic for the Core and other services.
+end note
+
+'===========================================================
+' APILayerClassDiagram.puml
+'===========================================================
+title API Layer Class Diagram (APIGateway & LoadBalancer)
+
+package "API Layer" {
+  class APIGateway <<Proxy>> {
+    +handleRequest(request: APIRequest): APIResponse
+    -loadBalancer: LoadBalancer
+  }
+
+  class LoadBalancer <<Mediator>> {
+    -servers: List<WebServer>
+    +registerServer(server: WebServer): void
+    +routeRequest(request: APIRequest): APIResponse
+    +selectServer(): WebServer
+  }
+
+  class WebServer {
+    +processRequest(request: APIRequest): APIResponse
+  }
+
+  class APIRequest {
+    +path: String
+    +method: String
+    +payload: Object
+  }
+
+  class APIResponse {
+    +statusCode: int
+    +body: Object
+  }
+
+  APIGateway --> LoadBalancer
+  LoadBalancer --> WebServer
+}
+
+note top of APIGateway
+  **Proxy Pattern**:
+  APIGateway is a Proxy for clients. It provides a single, controlled entry point
+  for all requests, adding authentication, rate-limiting, or caching if needed
+  before forwarding requests internally.
+end note
+
+note top of LoadBalancer
+  **Mediator Pattern**:
+  The LoadBalancer mediates between APIGateway and multiple WebServers.
+  It decides which server handles the request, separating routing logic
+  from the APIGateway and enabling scalable server pools.
+end note
+
+note top of WebServer
+  The WebServer processes requests after being chosen by the LoadBalancer.
+  No special GoF pattern here, but it's a key participant in the architecture.
+end note
+
+'===========================================================
+' EntertainmentPlannerCore.puml
+'===========================================================
+title EntertainmentPlannerCore Class Diagram
+
+package "EntertainmentPlannerCore" {
+    class EntertainmentPlannerCore {
+      -userRepository : UserRepository
+      -aggregatorClient : AggregatorClient
+      -recommendationSystem : RecommendationSystemClient
+      +getEventDetails(eventId : int) : Event
+      +getPersonalizedFeed(userId : int, count : int, offset : int) : List<Event>
+      +dislikeEvent(userId : int, eventId : int) : void
+      +likeEvent(userId : int, eventId : int) : void
+      +addEventToSchedule(userId : int, eventId : int) : void
+      +getUserProfile(userId : int) : User
+      +getUserSchedule(userId : int) : List<ScheduleItem>
+    }
+
+    class UserRepository {
+      +getUserById(userId : int) : User
+      +getUserPreferences(userId : int) : Preferences
+      +getUserSchedule(userId : int) : List<ScheduleItem>
+      +addEventToSchedule(userId : int, eventId : int) : void
+    }
+
+    class AggregatorClient {
+      +fetchEventDetails(eventId : int) : Event
+      +fetchRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<Event>
+      +fetchTopEvents(limit : int) : List<Event>
+    }
+
+    class RecommendationSystemClient {
+      +updateUserPreferences(userId : int, tags : List<String>, positive : boolean) : void
+      +getRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<Event>
+    }
+
+    class User {
+      +userId : int
+      +name : String
+      +preferences : Preferences
+    }
+
+    class Preferences {
+      +preferredActivities : List<String>
+      +priceRange : String
+      +activityStyle : String
+    }
+
+    class Event {
+      +id : int
+      +name : String
+      +description : String
+      +tags : List<String>
+      +date : Date
+      +price : float
+      +address : String
+    }
+
+    class ScheduleItem {
+      +eventId : int
+      +userId : int
+      +scheduledDate : Date
+    }
+
+    EntertainmentPlannerCore --> UserRepository
+    EntertainmentPlannerCore --> AggregatorClient
+    EntertainmentPlannerCore --> RecommendationSystemClient
+    UserRepository --> User
+    UserRepository --> ScheduleItem
+}
+
+note top of EntertainmentPlannerCore
+  **Facade Pattern**:
+  EntertainmentPlannerCore provides a unified interface for higher-level operations
+  (e.g., get feed, like/dislike events, add to schedule), hiding complexity of AggregatorClient,
+  RecommendationSystemClient, and UserRepository. It orchestrates these subsystems
+  so the front-end doesn't need to deal with them directly.
+end note
+
+'===========================================================
+' EntertainmentPlannerUntimerService.puml
+'===========================================================
+title EntertainmentPlannerUntimerService Class Diagram
+
+package "OntimerService" {
+    class EntertainmentPlannerUntimerService {
+      -scheduler : Scheduler
+      -edfsdbClient : EDFSDBClient
+      -gMapsClient : GMapsClient
+      +runDailyUpdate() : void
+    }
+
+    class Scheduler {
+      +scheduleDaily(task : Runnable) : void
+    }
+
+    class EDFSDBClient {
+      +getOutdatedEvents() : List<int>
+      +updateEventData(eventId : int, data : EventData) : void
+    }
+
+    class GMapsClient {
+      +getUpdatedEventInfo(location : String, type : String) : String
+    }
+
+    EntertainmentPlannerUntimerService --> Scheduler
+    EntertainmentPlannerUntimerService --> EDFSDBClient
+    EntertainmentPlannerUntimerService --> GMapsClient
+}
+
+note top of EntertainmentPlannerUntimerService
+  The UntimerService is responsible for running daily tasks
+  (like refreshing old event data). This can be considered a
+  scheduled job and it can use Observer pattern. It calls EDFSDBClient and GMapsClient
+  to update states data automatically every day.
+end note
+
+'===========================================================
+' JSParserClassDiagram.puml
+'===========================================================
+title Flamingo JS Parser Class Diagram
+
+package "JSParse" {
+    class FlamingoJSParser {
+      -gMapsClient : GMapsClient
+      -edfsdbClient : EDFSDBClient
+      -redisCache : RedisCacheClient
+      +requestDataUpdate(eventId : int) : EventData
+      +parseData(rawData : String) : EventData
+    }
+
+    class GMapsClient {
+      +getUpdatedEventInfo(location : String, type : String) : String
+    }
+
+    class EDFSDBClient {
+      +getEventData(type : String, location : String) : EventData
+      +updateEventData(eventId : int, data : EventData) : void
+    }
+
+    interface RedisCacheClient {
+      +get(key : String) : Object
+      +set(key : String, value : Object, ttl : int) : void
+    }
+
+    FlamingoJSParser --> GMapsClient
+    FlamingoJSParser --> EDFSDBClient
+    FlamingoJSParser --> RedisCacheClient
+}
+
+note top of FlamingoJSParser
+  JSParser updates old event data by leveraging GMapsClient for fresh info
+  and EDFSDBClient for storing updated data. It may cache results in Redis.
+  JSParser can be seen as a specialized data refiner that integrates multiple
+  services to ensure updated event information.
+end note
+
+'===========================================================
+' WebServerClassDiagram.puml
+'===========================================================
+title WebServer Class Diagram
+
+package "WebServer" {
+    class WebServer {
+      -controllers : List<Controller>
+      -coreClient : CoreAPI
+      -cacheClient : CacheClient
+      +handleRequest(request : HttpRequest) : HttpResponse
+      +start() : void
+    }
+
+    class CoreAPI {
+      +getEventDetails(eventId : int) : EventDTO
+      +getPersonalizedFeed(userId : int, count : int, offset : int = 0) : List<EventDTO>
+      +dislikeEvent(userId : int, eventId : int) : void
+      +likeEvent(userId : int, eventId : int) : void
+      +addEventToSchedule(userId : int, eventId : int) : void
+      +getUserProfile(userId : int) : UserProfileDTO
+      +getUserSchedule(userId : int) : List<ScheduleItemDTO>
+    }
+
+    interface CacheClient {
+      +getTopEventsFromCache(need : int) : List<EventDTO>
+      +addTopEvents(events : List<EventDTO>) : void
+      +incrementEventPopularity(eventId : int) : void
+      +decrementEventPopularity(eventId : int) : void
+    }
+
+    abstract class Controller {
+      +handle(request : HttpRequest) : HttpResponse
+    }
+
+    class FeedController extends Controller {
+      -coreAPI : CoreAPI
+      -cache : CacheClient
+      +handle(request : HttpRequest) : HttpResponse
+    }
+
+    class EventController extends Controller {
+      -coreAPI : CoreAPI
+      -cache : CacheClient
+      +handle(request : HttpRequest) : HttpResponse
+    }
+
+    class UserController extends Controller {
+      -coreAPI : CoreAPI
+      +handle(request : HttpRequest) : HttpResponse
+    }
+
+    class HttpRequest {
+      +path : String
+      +method : String
+      +params : Map<String,String>
+      +body : String
+    }
+
+    class HttpResponse {
+      +status : int
+      +body : String
+    }
+
+    class EventDTO {
+      +id : int
+      +name : String
+      +description : String
+      +date : Date
+      +price : float
+      +tags : List<String>
+      +address : String
+    }
+
+    class UserProfileDTO {
+      +userId : int
+      +name : String
+      +preferences : PreferencesDTO
+    }
+
+    class PreferencesDTO {
+      +preferredActivities : List<String>
+      +priceRange : String
+      +activityStyle : String
+    }
+
+    class ScheduleItemDTO {
+      +eventId : int
+      +scheduledDate : Date
+    }
+
+    WebServer --> Controller
+    WebServer --> CoreAPI
+    WebServer --> CacheClient
+    FeedController --> CoreAPI
+    FeedController --> CacheClient
+    EventController --> CoreAPI
+    EventController --> CacheClient
+    UserController --> CoreAPI
+}
+
+note top of WebServer
+  The WebServer uses a set of Controllers to handle different request types
+  (Feed, Event, User). The CoreAPI acts like a Facade
+  for backend logic. The CacheClient use Decorator approach of wrapping
+  calls to CoreAPI for caching. The WebServer itself orchestrates incoming requests
+  and delegates to controllers and the CoreAPI.
+end note
+
+@enduml

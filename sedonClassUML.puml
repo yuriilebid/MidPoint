@@ -1,0 +1,199 @@
+@startuml
+
+top to bottom direction
+
+class EntertainmentPlannerCore {
+    +generateSchedule(requestModel: RequestModel): Schedule
+    +fetchRecommendations(parameters: Map<String, Object>): List<Activity>
+    +fetchUserPreferences(userId: String): Map<String, Object>
+    +updateUserPreferences(userId: String, preferences: Map<String, Object>): void
+}
+
+class RecommendationSystem {
+    +generateRecommendations(inputData: Map<String, Object>): List<Activity>
+    +evaluateOptions(options: List<Activity>): Activity
+}
+
+class AggregatorService {
+    +aggregateData(entertainmentType: String, location: String): Map<String, Object>
+    +checkCache(redisKey: String): Object
+    +fetchActivityMetrics(activityType: String): Map<String, Object>
+    +updateCache(key: String, data: Object): void
+}
+
+class EntertainmentDataFirmSupplier {
+    +getData(entertainmentType: String, location: String): Map<String, Object>
+    +updateData(data: Map<String, Object>): void
+    +fetchOldDataLogs(): List<Map<String, Object>>
+}
+
+class EntertainmentPlannerDatabase {
+    +fetchActivityTypes(): List<String>
+    +storeMetrics(metrics: Map<String, Object>): void
+    +fetchUserHistory(userId: String): List<Map<String, Object>>
+    +storeUserHistory(userId: String, history: Map<String, Object>): void
+}
+
+class FlamingoParser {
+    +parseGoogleMapsData(location: String): Map<String, Object>
+    +updateCache(log: Map<String, Object>): void
+    +fetchLocationUpdates(location: String): Map<String, Object>
+}
+
+class FrontendAPIWrapper {
+    +callAPI(endpoint: String, payload: Map<String, Object>): Object
+    +handleResponse(response: Object): void
+    +formatRequest(requestModel: RequestModel): Map<String, Object>
+}
+
+class UptimerService {
+    +scheduleDailyUpdate(): void
+    +logUpdateStatus(status: String): void
+    +rescheduleUpdate(): void
+}
+
+class LoadBalancer {
+    +balanceLoad(request: Object): String
+    +monitorServerHealth(): List<String>
+}
+
+class RequestModel {
+    +spendingAmount: Double
+    +dailyTime: Double
+    +amountOfPeople: Int
+    +timeGap: Double
+    +validateRequest(): Boolean
+    +generateRequestId(): String
+}
+
+class Activity {
+    +type: String
+    +location: String
+    +duration: Double
+    +cost: Double
+    +metrics: Map<String, Object>
+    +fetchDetails(): Map<String, Object>
+    +compare(activity: Activity): Int
+}
+
+class Schedule {
+    +activities: List<Activity>
+    +timeSlots: Map<String, Double>
+    +addActivity(activity: Activity): void
+    +optimizeSchedule(): Schedule
+    +calculateTotalCost(): Double
+    +generateSummary(): String
+}
+
+class User {
+    +userId: String
+    +preferences: Map<String, Object>
+    +location: String
+    +updatePreferences(preferences: Map<String, Object>): void
+    +fetchActivityHistory(): List<Activity>
+    +addToHistory(activity: Activity): void
+}
+
+class GoogleMapsAPI {
+    +fetchLocationData(location: String): Map<String, Object>
+    +getTrafficData(location: String): Map<String, Object>
+    +fetchNearbyActivities(location: String): List<Activity>
+}
+
+class Logger {
+    +logEvent(event: String): void
+    +logError(error: String): void
+    +retrieveLogs(startDate: String, endDate: String): List<String>
+}
+
+class MainScreenController {
+    +displayMainScreen(): void
+    +navigateTo(section: String): void
+    +loadUserDashboard(userId: String): void
+}
+
+class UserController {
+    +login(userId: String, password: String): Boolean
+    +registerUser(userDetails: Map<String, Object>): String
+    +updateProfile(userId: String, profileData: Map<String, Object>): void
+    +fetchUserDetails(userId: String): Map<String, Object>
+    +deleteAccount(userId: String): Boolean
+}
+
+class FeedController {
+    +fetchFeed(userId: String): List<Activity>
+    +displayRecommendedActivities(userId: String): void
+    +refreshFeed(userId: String): void
+}
+
+class SearchController {
+    +searchActivities(query: String): List<Activity>
+    +filterResults(filters: Map<String, Object>): List<Activity>
+    +sortResults(criteria: String): List<Activity>
+}
+
+' Patterns Implementation
+
+
+class RequestModelFactory {
+    +createRequestModel(spendingAmount: Double, dailyTime: Double, amountOfPeople: Int, timeGap: Double): RequestModel
+    +createRequestModel(spendingAmount: Double, dailyTime: Double, amountOfPeople: Int, timeGap: Double): RequestModel
+}
+
+interface EventSubscriber {
+    +update(event: String): void
+}
+
+class LoggerObserver implements EventSubscriber {
+    +update(event: String): void
+}
+
+class ActivityFeed implements EventSubscriber {
+    +update(event: String): void
+}
+
+class EventPublisher {
+    +addObserver(observer: EventSubscriber): void
+    +removeObserver(observer: EventSubscriber): void
+    +notifyObservers(event: String): void
+}
+
+class FrontendAPIWrapper implements EventPublisher {
+    +addObserver(observer: EventSubscriber): void
+    +removeObserver(observer: EventSubscriber): void
+    +notifyObservers(event: String): void
+}
+
+class SchedulePlanner {
+    +generateFullSchedule(userId: String): Schedule
+}
+
+class SchedulePlannerService implements SchedulePlanner {
+    +generateFullSchedule(userId: String): Schedule
+    +fetchActivityMetricsAndPreferences(userId: String): Map<String, Object>
+    +aggregateDataAndGenerateRecommendations(userId: String): List<Activity>
+}
+
+RequestModelFactory -|> RequestModelFactoryService
+LoggerObserver --> EventPublisher
+ActivityFeed --> EventPublisher
+FrontendAPIWrapper --> EventPublisher
+SchedulePlannerService -|> SchedulePlanner
+
+EntertainmentPlannerCore --|> RecommendationSystem
+EntertainmentPlannerCore --|> AggregatorService
+AggregatorService --|> EntertainmentDataFirmSupplier
+AggregatorService --|> EntertainmentPlannerDatabase
+AggregatorService --|> FlamingoParser
+FrontendAPIWrapper --> EntertainmentPlannerCore
+UptimerService --> EntertainmentDataFirmSupplier
+FlamingoParser --> GoogleMapsAPI
+FlamingoParser --> Logger
+Schedule --> Activity
+RequestModel --> User
+MainScreenController --> FrontendAPIWrapper
+UserController --> FrontendAPIWrapper
+FeedController --> FrontendAPIWrapper
+SearchController --> FrontendAPIWrapper
+
+@enduml

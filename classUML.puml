@@ -1,0 +1,513 @@
+@startuml
+top to bottom direction
+
+skinparam class {
+    BackgroundColor<<Repository>> #F0F8FF
+    BorderColor<<Repository>> #1E90FF
+    FontColor<<Repository>> black
+
+    BackgroundColor<<Service>> #E8F5E9
+    BorderColor<<Service>> #4CAF50
+    FontColor<<Service>> black
+
+    BackgroundColor<<Controller>> #FFFACD
+    BorderColor<<Controller>> #FFD700
+    FontColor<<Controller>> black
+
+    BackgroundColor<<DTO>> #F5F5DC
+    BorderColor<<DTO>> #D2B48C
+    FontColor<<DTO>> black
+
+    BackgroundColor<<Model>> #E6E6FA
+    BorderColor<<Model>> #9370DB
+    FontColor<<Model>> black
+
+    BackgroundColor<<Enum>> #FAEBD7
+    BorderColor<<Enum>> #DEB887
+    FontColor<<Enum>> black
+}
+
+package "Enumerations" as enums {
+
+    enum ActivityType {
+        RESTAURANT
+        BAR
+        COFFEE_SHOP
+        PARK
+    }
+
+    enum TransportationMethod {
+        WALKING
+        DRIVING
+        BICYCLING
+        PUBLIC_TRANSPORT
+    }
+
+    enum RequestStatus {
+        PENDING
+        ACCEPTED
+        REJECTED
+        CANCELLED
+    }
+
+    enum NotificationType {
+        FRIEND_REQUEST
+        MEET_REQUEST
+        ALERT
+        SYSTEM
+    }
+
+}
+
+package "Data\n(Models)" as model {
+
+    class User {
+        + Long id
+        + String username
+        + String email
+        + String password
+        + Preferences preferences
+        + Location location
+        + List<User> friends
+        + List<Review> reviews
+        + List<Notification> notifications
+    }
+
+    class Location {
+        + Long id
+        + Double latitude
+        + Double longitude
+        + String address
+    }
+
+    class Activity {
+        + Long id
+        + String name
+        + ActivityType type
+        + Location location
+        + Double rating
+        + List<Review> reviews
+    }
+
+    class Preferences {
+        + Long id
+        + List<ActivityType> preferredActivityTypes
+        + List<TransportationMethod> preferredTransportationMethods
+    }
+
+    class MeetRequest {
+        + Long id
+        + User requester
+        + User recipient
+        + Activity activity
+        + RequestStatus status
+        + Date date
+        + Time time
+    }
+
+    class Notification {
+        + Long id
+        + User user
+        + String message
+        + NotificationType type
+        + Boolean readStatus
+        + Date timestamp
+    }
+
+    class Review {
+        + Long id
+        + User user
+        + Activity activity
+        + Integer rating
+        + String comment
+        + Date timestamp
+    }
+
+    class GroupMeetRequest {
+        + Long id
+        + List<User> groupMembers
+        + Activity activity
+        + RequestStatus status
+        + Date date
+        + Time time
+    }
+
+}
+
+package "API\n(DTOs)" as api {
+
+    class UserDTO {
+        + Long id
+        + String username
+        + String email
+        + PreferencesDTO preferences
+        + LocationDTO location
+    }
+
+    class ActivityDTO {
+        + Long id
+        + String name
+        + ActivityType type
+        + LocationDTO location
+        + Double rating
+    }
+
+    class MeetRequestDTO {
+        + Long id
+        + UserDTO requester
+        + UserDTO recipient
+        + ActivityDTO activity
+        + RequestStatus status
+        + Date date
+        + Time time
+    }
+
+    class NotificationDTO {
+        + Long id
+        + UserDTO user
+        + String message
+        + NotificationType type
+        + Boolean readStatus
+        + Date timestamp
+    }
+
+    class ReviewDTO {
+        + Long id
+        + UserDTO user
+        + ActivityDTO activity
+        + Integer rating
+        + String comment
+        + Date timestamp
+    }
+
+    class GroupMeetRequestDTO {
+        + Long id
+        + List<UserDTO> groupMembers
+        + ActivityDTO activity
+        + RequestStatus status
+        + Date date
+        + Time time
+    }
+
+    class PreferencesDTO {
+        + Long id
+        + List<ActivityType> preferredActivityTypes
+        + List<TransportationMethod> preferredTransportationMethods
+    }
+
+    class LocationDTO {
+        + Long id
+        + Double latitude
+        + Double longitude
+        + String address
+    }
+
+}
+
+package "Data\n(Repositories)" as repository {
+
+    interface JpaRepository <<Repository>> {
+        + <T> List<T> findAll()
+        + <S extends T> S save(S entity)
+        + void delete(T entity)
+        + Optional<T> findById(Long id)
+    }
+
+    interface UserRepository <<Repository>> extends JpaRepository<User, Long> {
+    }
+
+    interface ActivityRepository <<Repository>> extends JpaRepository<Activity, Long> {
+    }
+
+    interface MeetRequestRepository <<Repository>> extends JpaRepository<MeetRequest, Long> {
+    }
+
+    interface NotificationRepository <<Repository>> extends JpaRepository<Notification, Long> {
+    }
+
+    interface ReviewRepository <<Repository>> extends JpaRepository<Review, Long> {
+    }
+
+    interface PreferencesRepository <<Repository>> extends JpaRepository<Preferences, Long> {
+    }
+
+    interface LocationRepository <<Repository>> extends JpaRepository<Location, Long> {
+    }
+
+    interface GroupMeetRequestRepository <<Repository>> extends JpaRepository<GroupMeetRequest, Long> {
+    }
+
+}
+
+package "Services" as service {
+
+    class UserService <<Service>> {
+        + registerUser(UserDTO userDTO) : UserDTO
+        + authenticateUser(String email, String password) : String
+        + updateProfile(Long userId, UserDTO userDTO) : UserDTO
+        + manageFriends(Long userId, Long friendId) : void
+        + getUserById(Long userId) : UserDTO
+    }
+
+    class ActivityService <<Service>> {
+        + findOptimalActivity(User user1, User user2, Preferences preferences) : ActivityDTO
+        + searchActivities(String query, ActivityType type) : List<ActivityDTO>
+        + addActivity(ActivityDTO activityDTO) : ActivityDTO
+        + updateActivity(Long activityId, ActivityDTO activityDTO) : ActivityDTO
+        + getActivityById(Long activityId) : ActivityDTO
+    }
+
+    class MeetRequestService <<Service>> {
+        + createMeetRequest(MeetRequestDTO meetRequestDTO) : MeetRequestDTO
+        + acceptMeetRequest(Long requestId) : MeetRequestDTO
+        + rejectMeetRequest(Long requestId) : void
+        + cancelMeetRequest(Long requestId) : void
+        + getMeetRequestsForUser(Long userId) : List<MeetRequestDTO>
+    }
+
+    class NotificationService <<Service>> {
+        + sendNotification(NotificationDTO notificationDTO) : NotificationDTO
+        + markAsRead(Long notificationId) : void
+        + getUserNotifications(Long userId) : List<NotificationDTO>
+    }
+
+    class ETAService <<Service>> {
+        + calculateETA(Location origin, Location destination, TransportationMethod method) : ETAResponse
+        + getRealTimeTraffic(Location origin, Location destination) : TrafficData
+    }
+
+    class ReviewService <<Service>> {
+        + addReview(ReviewDTO reviewDTO) : ReviewDTO
+        + getReviewsForActivity(Long activityId) : List<ReviewDTO>
+        + deleteReview(Long reviewId) : void
+    }
+
+    class GroupMeetRequestService <<Service>> {
+        + createGroupMeetRequest(GroupMeetRequestDTO groupMeetRequestDTO) : GroupMeetRequestDTO
+        + manageGroupMembers(Long groupRequestId, List<Long> memberIds) : void
+        + calculateGroupMidpoint(List<User> groupMembers) : ActivityDTO
+        + getGroupMeetRequests(Long userId) : List<GroupMeetRequestDTO>
+    }
+
+    class PreferenceService <<Service>> {
+        + updatePreferences(Long userId, PreferencesDTO preferencesDTO) : PreferencesDTO
+        + getUserPreferences(Long userId) : PreferencesDTO
+    }
+
+    class LocationService <<Service>> {
+        + geocodeAddress(String address) : Location
+        + reverseGeocode(Double latitude, Double longitude) : String
+        + validateLocation(LocationDTO locationDTO) : boolean
+        + getLocationById(Long locationId) : LocationDTO
+    }
+
+}
+
+package "UI\n(Controllers)" as ui {
+
+    class UserController <<Controller>> {
+        + registerUser(UserDTO userDTO) : ResponseEntity<UserDTO>
+        + login(String email, String password) : ResponseEntity<String>
+        + updateProfile(Long userId, UserDTO userDTO) : ResponseEntity<UserDTO>
+        + addFriend(Long userId, Long friendId) : ResponseEntity<Void>
+        + getUserProfile(Long userId) : ResponseEntity<UserDTO>
+    }
+
+    class ActivityController <<Controller>> {
+        + findOptimalActivity(UserDTO user1, UserDTO user2, PreferencesDTO preferences) : ResponseEntity<ActivityDTO>
+        + searchActivities(String query, ActivityType type) : ResponseEntity<List<ActivityDTO>>
+        + addActivity(ActivityDTO activityDTO) : ResponseEntity<ActivityDTO>
+        + updateActivity(Long activityId, ActivityDTO activityDTO) : ResponseEntity<ActivityDTO>
+        + getActivity(Long activityId) : ResponseEntity<ActivityDTO>
+    }
+
+    class MeetRequestController <<Controller>> {
+        + createMeetRequest(MeetRequestDTO meetRequestDTO) : ResponseEntity<MeetRequestDTO>
+        + acceptMeetRequest(Long requestId) : ResponseEntity<MeetRequestDTO>
+        + rejectMeetRequest(Long requestId) : ResponseEntity<Void>
+        + cancelMeetRequest(Long requestId) : ResponseEntity<Void>
+        + getMeetRequests(Long userId) : ResponseEntity<List<MeetRequestDTO>>
+    }
+
+    class NotificationController <<Controller>> {
+        + sendNotification(NotificationDTO notificationDTO) : ResponseEntity<NotificationDTO>
+        + markAsRead(Long notificationId) : ResponseEntity<Void>
+        + getNotifications(Long userId) : ResponseEntity<List<NotificationDTO>>
+    }
+
+    class ReviewController <<Controller>> {
+        + addReview(ReviewDTO reviewDTO) : ResponseEntity<ReviewDTO>
+        + getReviews(Long activityId) : ResponseEntity<List<ReviewDTO>>
+        + deleteReview(Long reviewId) : ResponseEntity<Void>
+    }
+
+    class GroupMeetRequestController <<Controller>> {
+        + createGroupMeetRequest(GroupMeetRequestDTO groupMeetRequestDTO) : ResponseEntity<GroupMeetRequestDTO>
+        + manageGroupMembers(Long groupRequestId, List<Long> memberIds) : ResponseEntity<Void>
+        + calculateGroupMidpoint(List<UserDTO> groupMembers) : ResponseEntity<ActivityDTO>
+        + getGroupMeetRequests(Long userId) : ResponseEntity<List<GroupMeetRequestDTO>>
+    }
+
+    class PreferenceController <<Controller>> {
+        + updatePreferences(Long userId, PreferencesDTO preferencesDTO) : ResponseEntity<PreferencesDTO>
+        + getPreferences(Long userId) : ResponseEntity<PreferencesDTO>
+    }
+
+    class LocationController <<Controller>> {
+        + geocode(String address) : ResponseEntity<LocationDTO>
+        + reverseGeocode(Double latitude, Double longitude) : ResponseEntity<String>
+        + validateLocation(LocationDTO locationDTO) : ResponseEntity<Boolean>
+        + getLocation(Long locationId) : ResponseEntity<LocationDTO>
+    }
+}
+
+package "Services" as service {
+
+    class UserService <<Service>> {
+        + registerUser(UserDTO userDTO) : UserDTO
+        + authenticateUser(String email, String password) : String
+        + updateProfile(Long userId, UserDTO userDTO) : UserDTO
+        + manageFriends(Long userId, Long friendId) : void
+        + getUserById(Long userId) : UserDTO
+    }
+
+    class ActivityService <<Service>> {
+        + findOptimalActivity(User user1, User user2, Preferences preferences) : ActivityDTO
+        + searchActivities(String query, ActivityType type) : List<ActivityDTO>
+        + addActivity(ActivityDTO activityDTO) : ActivityDTO
+        + updateActivity(Long activityId, ActivityDTO activityDTO) : ActivityDTO
+        + getActivityById(Long activityId) : ActivityDTO
+    }
+
+    class MeetRequestService <<Service>> {
+        + createMeetRequest(MeetRequestDTO meetRequestDTO) : MeetRequestDTO
+        + acceptMeetRequest(Long requestId) : MeetRequestDTO
+        + rejectMeetRequest(Long requestId) : void
+        + cancelMeetRequest(Long requestId) : void
+        + getMeetRequestsForUser(Long userId) : List<MeetRequestDTO>
+    }
+
+    class NotificationService <<Service>> {
+        + sendNotification(NotificationDTO notificationDTO) : NotificationDTO
+        + markAsRead(Long notificationId) : void
+        + getUserNotifications(Long userId) : List<NotificationDTO>
+    }
+
+    class ETAService <<Service>> {
+        + calculateETA(Location origin, Location destination, TransportationMethod method) : ETAResponse
+        + getRealTimeTraffic(Location origin, Location destination) : TrafficData
+    }
+
+    class ReviewService <<Service>> {
+        + addReview(ReviewDTO reviewDTO) : ReviewDTO
+        + getReviewsForActivity(Long activityId) : List<ReviewDTO>
+        + deleteReview(Long reviewId) : void
+    }
+
+    class GroupMeetRequestService <<Service>> {
+        + createGroupMeetRequest(GroupMeetRequestDTO groupMeetRequestDTO) : GroupMeetRequestDTO
+        + manageGroupMembers(Long groupRequestId, List<Long> memberIds) : void
+        + calculateGroupMidpoint(List<User> groupMembers) : ActivityDTO
+        + getGroupMeetRequests(Long userId) : List<GroupMeetRequestDTO>
+    }
+
+    class PreferenceService <<Service>> {
+        + updatePreferences(Long userId, PreferencesDTO preferencesDTO) : PreferencesDTO
+        + getUserPreferences(Long userId) : PreferencesDTO
+    }
+
+    class LocationService <<Service>> {
+        + geocodeAddress(String address) : Location
+        + reverseGeocode(Double latitude, Double longitude) : String
+        + validateLocation(LocationDTO locationDTO) : boolean
+        + getLocationById(Long locationId) : LocationDTO
+    }
+
+}
+
+package "Data\n(Repositories)" as repository {
+
+    interface UserRepository <<Repository>> extends JpaRepository<User, Long> {
+    }
+
+    interface ActivityRepository <<Repository>> extends JpaRepository<Activity, Long> {
+    }
+
+    interface MeetRequestRepository <<Repository>> extends JpaRepository<MeetRequest, Long> {
+    }
+
+    interface NotificationRepository <<Repository>> extends JpaRepository<Notification, Long> {
+    }
+
+    interface ReviewRepository <<Repository>> extends JpaRepository<Review, Long> {
+    }
+
+    interface PreferencesRepository <<Repository>> extends JpaRepository<Preferences, Long> {
+    }
+
+    interface LocationRepository <<Repository>> extends JpaRepository<Location, Long> {
+    }
+
+    interface GroupMeetRequestRepository <<Repository>> extends JpaRepository<GroupMeetRequest, Long> {
+    }
+
+}
+
+UserController ..> UserService : использует
+ActivityController ..> ActivityService : использует
+MeetRequestController ..> MeetRequestService : использует
+NotificationController ..> NotificationService : использует
+ReviewController ..> ReviewService : использует
+GroupMeetRequestController ..> GroupMeetRequestService : использует
+PreferenceController ..> PreferenceService : использует
+LocationController ..> LocationService : использует
+
+UserService ..> UserRepository : использует
+ActivityService ..> ActivityRepository : использует
+MeetRequestService ..> MeetRequestRepository : использует
+NotificationService ..> NotificationRepository : использует
+ReviewService ..> ReviewRepository : использует
+GroupMeetRequestService ..> GroupMeetRequestRepository : использует
+PreferenceService ..> PreferencesRepository : использует
+LocationService ..> LocationRepository : использует
+
+UserService ..> User : работает с
+ActivityService ..> Activity : работает с
+MeetRequestService ..> MeetRequest : работает с
+NotificationService ..> Notification : работает с
+ReviewService ..> Review : работает с
+GroupMeetRequestService ..> GroupMeetRequest : работает с
+PreferenceService ..> Preferences : работает с
+LocationService ..> Location : работает с
+
+User "1" --> "1" Preferences : имеет
+User "1" --> "1" Location : имеет
+User "0..*" --> "0..*" User : друзья
+User "0..*" --> "0..*" Review : пишет
+User "0..*" --> "0..*" Notification : получает
+Activity "1" --> "0..*" Review : имеет
+MeetRequest "1" --> "1" User : requester
+MeetRequest "1" --> "1" User : recipient
+MeetRequest "1" --> "1" Activity : назначена
+GroupMeetRequest "1" --> "0..*" User : участники
+GroupMeetRequest "1" --> "1" Activity : назначена
+
+UserController --> UserDTO : использует
+ActivityController --> ActivityDTO : использует
+MeetRequestController --> MeetRequestDTO : использует
+NotificationController --> NotificationDTO : использует
+ReviewController --> ReviewDTO : использует
+GroupMeetRequestController --> GroupMeetRequestDTO : использует
+PreferenceController --> PreferencesDTO : использует
+LocationController --> LocationDTO : использует
+
+UserService --> UserDTO : использует
+ActivityService --> ActivityDTO : использует
+MeetRequestService --> MeetRequestDTO : использует
+NotificationService --> NotificationDTO : использует
+ReviewService --> ReviewDTO : использует
+GroupMeetRequestService --> GroupMeetRequestDTO : использует
+PreferenceService --> PreferencesDTO : использует
+LocationService --> LocationDTO : использует
+
+@enduml

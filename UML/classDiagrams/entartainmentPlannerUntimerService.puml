@@ -1,0 +1,27 @@
+@startuml
+title EntertainmentPlannerUntimerService Class Diagram
+
+class EntertainmentPlannerUntimerService {
+  -scheduler : Scheduler
+  -edfsdbClient : EDFSDBClient
+  -gMapsClient : GMapsClient
+  +runDailyUpdate() : void
+}
+
+class Scheduler {
+  +scheduleDaily(task : Runnable) : void
+}
+
+class EDFSDBClient {
+  +getOutdatedEvents() : List<int>
+  +updateEventData(eventId : int, data : EventData) : void
+}
+
+class GMapsClient {
+  +getUpdatedEventInfo(location : String, type : String) : String
+}
+
+EntertainmentPlannerUntimerService -> Scheduler
+EntertainmentPlannerUntimerService -> EDFSDBClient
+EntertainmentPlannerUntimerService -> GMapsClient
+@enduml

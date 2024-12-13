@@ -1,0 +1,23 @@
+@startuml
+title JSParser (Flamingo) Class Diagram
+
+class FlamingoJSParser {
+  -gMapsClient : GMapsClient
+  -edfsdbClient : EDFSDBClient
+  -redisCache : RedisCacheClient
+  +requestDataUpdate(eventId : int) : EventData
+  +parseData(rawData : String) : EventData
+}
+
+class GMapsClient {
+  +getUpdatedEventInfo(location : String, type : String) : String
+}
+
+class EDFSDBClient {
+  +updateEventData(eventId : int, data : EventData) : void
+}
+
+FlamingoJSParser -> GMapsClient
+FlamingoJSParser -> EDFSDBClient
+FlamingoJSParser -> RedisCacheClient
+@enduml

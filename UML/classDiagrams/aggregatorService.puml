@@ -1,0 +1,55 @@
+@startuml
+title Aggregator Service Class Diagram
+
+class AggregatorService {
+  -epdbClient : EPDBClient
+  -edfsdbClient : EDFSDBClient
+  -flamingoClient : FlamingoClient
+  -redisCache : RedisCacheClient
+  +fetchEventDetails(eventId : int) : EventData
+  +fetchRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<EventData>
+  +fetchTopEvents(limit : int) : List<EventData>
+}
+
+class EPDBClient {
+  +getEventById(eventId : int) : EventData
+  +getRecommendedEvents(preferences : Preferences, limit : int, offset : int) : List<EventData>
+  +getTopEvents(limit : int) : List<EventData>
+}
+
+class EDFSDBClient {
+  +getEventData(type : String, location : String) : EventData
+  +updateEventData(eventId : int, data : EventData) : void
+}
+
+class FlamingoClient {
+  +requestDataUpdate(eventId : int) : EventData
+}
+
+interface RedisCacheClient {
+  +get(key : String) : Object
+  +set(key : String, value : Object, ttl : int) : void
+}
+
+class EventData {
+  +id : int
+  +name : String
+  +description : String
+  +tags : List<String>
+  +date : Date
+  +price : float
+  +location : String
+  +status : DataStatus   <<Normal, Old, NoData>>
+}
+
+enum DataStatus {
+  Normal
+  Old
+  NoData
+}
+
+AggregatorService -> EPDBClient
+AggregatorService -> EDFSDBClient
+AggregatorService -> FlamingoClient
+AggregatorService -> RedisCacheClient
+@enduml

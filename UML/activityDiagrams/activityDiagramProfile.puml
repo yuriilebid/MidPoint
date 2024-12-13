@@ -1,0 +1,41 @@
+@startuml
+start
+:Display User Profile Page
+with Profile Description;
+
+if (User selects "Edit") then (yes)
+  :Display Editable Fields;
+  repeat
+    :User selects a field to edit;
+    switch (Field to Edit)
+      case ("Profile Name")
+        :Update Profile Name;
+      case ("City")
+        :Update City;
+      case ("Preferred Price")
+        :Update Preferred Price Range;
+      case ("Preferred Activity Manner")
+        :Update Activity Preferences (e.g., sport, relax, nature);
+    endswitch
+  repeat while (User press button "done"?) is (no)
+  :Save Changes;
+else (no)
+  :Do Nothing;
+endif
+
+
+  switch (User interacting with Dock Menu options)
+    case ("My Profile")
+      :Display Profile Page;
+      stop;
+    case ("\nMy Schedule")
+      :Display Schedule Page;
+      stop;
+    case ("\nFind Activity")
+      :Display Activity Finder Page;
+      stop;
+    case ("Feed")
+      :Display Feed Page;
+      stop;
+    endswitch
+@enduml

@@ -1,0 +1,65 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+title API Layer Class Diagram (APIGateway & LoadBalancer)
+
+package "API Layer" {
+
+  class APIGateway <<Proxy>> {
+    +handleRequest(request: APIRequest): APIResponse
+    -loadBalancer: LoadBalancer
+  }
+
+  class LoadBalancer <<Mediator>> {
+    -servers: List<WebServer>
+    +registerServer(server: WebServer): void
+    +routeRequest(request: APIRequest): APIResponse
+    +selectServer(): WebServer
+  }
+
+  class WebServer {
+    +processRequest(request: APIRequest): APIResponse
+  }
+
+  class APIRequest {
+    +path: String
+    +method: String
+    +payload: Object
+  }
+
+  class APIResponse {
+    +statusCode: int
+    +body: Object
+  }
+
+  ' Relationships
+  APIGateway --> LoadBalancer : uses
+  LoadBalancer --> WebServer : selects and routes to
+}
+
+' Notes on patterns
+note top of APIGateway
+  **Proxy Pattern**:
+  The APIGateway acts as a Proxy for the clients.
+  It provides a single entry point for requests,
+  possibly adding authentication, rate-limiting,
+  or caching before forwarding requests internally.
+end note
+
+note top of LoadBalancer
+  **Mediator Pattern** (or Strategy within LoadBalancer):
+  The LoadBalancer mediates between the APIGateway and multiple WebServers.
+  It decides which server receives the request (could use various strategies).
+  This separates the routing logic from the APIGateway and
+  enables dynamically adding or removing servers.
+end note
+
+note top of WebServer
+  The WebServer instances are the endpoints that actually
+  handle the business logic (through the Core and other services).
+  They don't implement a particular pattern here, but are
+  participants chosen by the LoadBalancer.
+end note
+
+@enduml

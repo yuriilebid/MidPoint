@@ -1,0 +1,99 @@
+@startuml
+actor User
+participant "Front-End (Mobile/Web/Desktop)" as FE
+participant APIGateway
+participant LoadBalancer
+participant WebServer
+participant "EntertainmentPlannerCore" as Core
+database "Users DB" as UDB
+
+== Display Login or Register Page ==
+User -> FE: Open App (Authorization Page)
+FE -> User: Display "Login or Register" options
+
+alt User chooses "Login"
+    loop Until Authentication Successful
+        User -> FE: Enter Username/Email and Password
+        FE -> APIGateway: POST /api/auth/login {credentials}
+        APIGateway -> LoadBalancer: Forward request
+        LoadBalancer -> WebServer: Route to available WebServer
+        WebServer -> Core: Authenticate(credentials)
+        Core -> UDB: SELECT user WHERE credentials
+        UDB --> Core: Return User Data or Null
+
+        alt Credentials Valid?
+            Core --> WebServer: Auth Success
+            WebServer --> LoadBalancer: Response OK
+            LoadBalancer --> APIGateway: Response OK
+            APIGateway --> FE: Auth Success
+
+            FE -> User: Logged in successfully
+        else Credentials Invalid
+            Core --> WebServer: Auth Failed
+            WebServer --> LoadBalancer: Response Unauthorized
+            LoadBalancer --> APIGateway: Response Unauthorized
+            APIGateway --> FE: Auth Failed
+            FE -> User: Invalid credentials, try again
+        end
+    end
+
+    FE -> User: Display Main Feed Page
+else User chooses "Register"
+    loop Until Unique Email
+        User -> FE: Provide Registration Details (Email)
+        FE -> APIGateway: POST /api/auth/check_email {email}
+        APIGateway -> LoadBalancer: Forward request
+        LoadBalancer -> WebServer: Route request
+        WebServer -> Core: Check Email Availability(email)
+        Core -> UDB: SELECT user WHERE email
+        UDB --> Core: Return Existing or Null
+
+        alt Email Already Used?
+            Core --> WebServer: Email In Use
+            WebServer --> LoadBalancer: Response: "Email Used"
+            LoadBalancer --> APIGateway: Forward: "Email Used"
+            APIGateway --> FE: Email already taken
+            FE -> User: Enter a different email
+        else
+            Core --> WebServer: Email Available
+            WebServer --> LoadBalancer: Email OK
+            LoadBalancer --> APIGateway: Email OK
+            APIGateway --> FE: Email OK
+        end
+    end
+
+    loop Until Password Meets Requirements
+        User -> FE: Enter Password
+        FE -> APIGateway: POST /api/auth/check_password {password}
+        APIGateway -> LoadBalancer: Forward password check
+        LoadBalancer -> WebServer: Request password validation
+        WebServer -> Core: Validate Password(password)
+        Core --> WebServer: Valid or Not
+        WebServer --> LoadBalancer: Forward result
+        LoadBalancer --> APIGateway: Forward result
+        APIGateway --> FE: Password valid or not
+
+        alt Password Not Valid
+            FE -> User: Password does not meet criteria, try again
+        else Password Valid
+            FE -> User: Password accepted
+        end
+    end
+
+    User -> FE: Provide Name, Favorite Activities, City, Price Range
+    FE -> APIGateway: POST /api/auth/register {fullUserData}
+    APIGateway -> LoadBalancer: Forward request
+    LoadBalancer -> WebServer: Route request
+    WebServer -> Core: Create New Account(fullUserData)
+    Core -> UDB: INSERT new user record
+    UDB --> Core: Insert Success
+    Core --> WebServer: Registration Success
+    WebServer --> LoadBalancer: Success
+    LoadBalancer --> APIGateway: Success
+    APIGateway --> FE: Registration Complete
+    FE -> User: Account created successfully
+
+    FE -> User: Display Main Feed Page
+end
+
+@enduml

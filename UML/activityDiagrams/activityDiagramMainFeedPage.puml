@@ -1,0 +1,41 @@
+@startuml
+start
+:Request 10 Most Popular Events/Activities from Server;
+:Display Events/Activities;
+
+while (User scrolling to the end of list?) is (yes)
+  :Request Additional 10 Events/Activities from Server;
+  :Load and Display Additional Events/Activities;
+endwhile
+
+while (User selects an Event/Activity?) is (yes)
+  :Display Event/Activity Details;
+  switch (Selected Action)
+    case ("Dislike")
+      :Reduce Interest in Event Tags;
+      :Update Recommendation System;
+    case ("Like")
+      :Increase Interest in Event Tags;
+      :Update Recommendation System;
+    case ("Add")
+      :Redirect to Add Activity Page;
+      stop
+    endswitch
+endwhile
+
+  switch (User interacting with Dock Menu optins)
+    case ("My Profile")
+      :Display Profile Page;
+      stop
+    case ("\nMy Schedule")
+      :Display Schedule Page;
+      stop
+    case ("\nFind Activity")
+      :Display Activity Finder Page;
+      stop
+    case ("Feed")
+      :Display Feed Page;
+      stop
+    endswitch
+
+@enduml

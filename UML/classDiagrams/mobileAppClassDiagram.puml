@@ -1,0 +1,294 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+title Mobile App Architecture (Classes, Screens, Patterns & Justifications)
+
+package "MobileApp" {
+
+  ' UI Screens
+  package "UI" {
+    class AuthScreen {
+      +displayLoginOrRegister(): void
+      +askLoginPassword(): void
+      +askRegistrationDetails(): void
+      +showError(msg: String): void
+      +navigateToMainFeed(): void
+      -userService: UserService
+      +performLogin(email: String, pass: String): void
+      +performRegister(data: UserRegistrationData): void
+    }
+
+    class MainFeedScreen {
+      +displayEvents(events: List<Event>): void
+      +showLoading(): void
+      +showError(msg: String): void
+      +loadMoreEvents(): void
+      +onEventSelected(eventId: int): void
+      +likeEvent(eventId: int): void
+      +dislikeEvent(eventId: int): void
+      +navigateToAddActivityPage(eventId: int): void
+      -eventService: EventService
+    }
+
+    class FinderScreen {
+      +displayFinderPage(): void
+      +showQuestions(): void
+      +useDefaultValuesFromProfile(): void
+      +displayMatchingActivities(acts: List<Activity>): void
+      +showError(msg: String): void
+      +onActivitySelected(actId: int): void
+      -activityService: ActivityService
+      -userPreferences: UserPreferences
+    }
+
+    class ProfileScreen {
+      +displayUserProfile(user: User): void
+      +editProfileFields(): void
+      +saveChanges(): void
+      +showError(msg: String): void
+      -userService: UserService
+    }
+
+    class ScheduleScreen {
+      +displaySchedule(entries: List<ScheduleEntry>): void
+      +showActivityOptions(eventId: int): void
+      +inviteEvent(eventId: int): void
+      +editSchedule(): void
+      +deleteSelectedActivities(activityIds: List<int>): void
+      +showError(msg: String): void
+      -scheduleService: ScheduleService
+      -shareService: SystemShareService
+    }
+
+    class EventDetailsScreen {
+      +displayEventDetails(event: Event): void
+      +likeEvent(eventId: int): void
+      +dislikeEvent(eventId: int): void
+      +addEventToSchedule(eventId: int): void
+      +showError(msg: String): void
+      -eventService: EventService
+    }
+
+    class AddActivityScreen {
+      +displayAddForm(): void
+      +submitNewActivity(activityData: ActivityData): void
+      +showSuccess(): void
+      +showError(msg: String): void
+      -eventService: EventService
+    }
+  }
+
+  ' Navigation Controller for Dock Menu
+  class DockMenuController {
+    +navigateToProfile(): void
+    +navigateToSchedule(): void
+    +navigateToFinder(): void
+    +navigateToFeed(): void
+  }
+
+  ' Supporting classes
+  package "Services" {
+    class FrontEndFacade <<Facade>> {
+      -apiClient: APIClient
+      +login(email: String, pass: String): UserSession
+      +register(data: UserRegistrationData): UserSession
+      +getFeed(count: int, offset: int): List<Event>
+      +likeEvent(eventId: int): boolean
+      +dislikeEvent(eventId: int): boolean
+      +findActivities(pref: FinderPreferences): List<Activity>
+      +getUserProfile(userId: int): User
+      +updateUserProfile(userId: int, updates: UserProfileUpdates): boolean
+      +getSchedule(userId: int): List<ScheduleEntry>
+      +updateSchedule(userId: int, eventId: int, action: String): boolean
+      +addNewActivity(data: ActivityData): boolean
+      +getEventDetails(eventId: int): Event
+    }
+
+    class APIClient <<Proxy>> {
+      -baseUrl: String
+      +get(path: String): Object
+      +post(path: String, payload: Object): Object
+    }
+
+    class UserService {
+      -facade: FrontEndFacade
+      +authenticate(email: String, pass: String): UserSession
+      +registerUser(data: UserRegistrationData): UserSession
+      +fetchUserProfile(userId: int): User
+      +updateUserProfile(userId: int, updates: UserProfileUpdates): boolean
+    }
+
+    class EventService {
+      -facade: FrontEndFacade
+      +getInitialFeed(): List<Event>
+      +getMoreEvents(offset: int): List<Event>
+      +likeEvent(eventId: int): boolean
+      +dislikeEvent(eventId: int): boolean
+      +addEventToSchedule(eventId: int): boolean
+      +getEventDetails(eventId: int): Event
+      +addNewActivity(data: ActivityData): boolean
+    }
+
+    class ActivityService {
+      -facade: FrontEndFacade
+      +findActivities(pref: FinderPreferences): List<Activity>
+    }
+
+    class ScheduleService {
+      -facade: FrontEndFacade
+      +getSchedule(userId: int): List<ScheduleEntry>
+      +updateSchedule(userId: int, eventId: int, action: String): boolean
+    }
+
+    class SystemShareService {
+      +shareLink(link: String): void
+    }
+
+    class UserPreferences {
+      +getDefaultPeopleCount(): int
+      +getDefaultTimeRange(): String
+      +getDefaultActivityTypes(): List<String>
+      +getDefaultPriceRange(): String
+    }
+  }
+
+  ' Models
+  package "Models" {
+    class User {
+      +id: int
+      +name: String
+      +email: String
+      +city: String
+      +preferredPriceRange: String
+      +favoriteActivities: List<String>
+    }
+
+    class Event {
+      +id: int
+      +title: String
+      +address: String
+      +date: Date
+      +priceRange: String
+      +tags: List<String>
+    }
+
+    class Activity {
+      +id: int
+      +name: String
+      +type: String
+      +tags: List<String>
+    }
+
+    class ActivityData {
+      +name: String
+      +type: String
+      +tags: List<String>
+      +otherDetails: String
+    }
+
+    class ScheduleEntry {
+      +eventId: int
+      +userId: int
+      +scheduledDate: Date
+    }
+
+    class UserSession {
+      +userId: int
+      +token: String
+    }
+
+    class UserRegistrationData {
+      +email: String
+      +password: String
+      +name: String
+      +city: String
+      +preferredPriceRange: String
+      +favoriteActivities: List<String>
+    }
+
+    class UserProfileUpdates {
+      +name: String
+      +city: String
+      +preferredPriceRange: String
+      +favoriteActivities: List<String>
+    }
+
+    class FinderPreferences {
+      +amountOfPeople: int
+      +timeRange: String
+      +activityTypes: List<String>
+      +priceRange: String
+    }
+  }
+
+  ' Builder
+  package "Builder" {
+    class RegistrationRequestBuilder <<Builder>> {
+      -email: String
+      -password: String
+      -name: String
+      +setEmail(String): RegistrationRequestBuilder
+      +setPassword(String): RegistrationRequestBuilder
+      +setName(String): RegistrationRequestBuilder
+      +build(): UserRegistrationData
+    }
+  }
+
+  ' Relationships
+  AuthScreen --> UserService
+  AuthScreen --> DockMenuController
+  MainFeedScreen --> EventService
+  MainFeedScreen --> DockMenuController
+  FinderScreen --> ActivityService
+  FinderScreen --> UserPreferences
+  FinderScreen --> DockMenuController
+  ProfileScreen --> UserService
+  ProfileScreen --> DockMenuController
+  ScheduleScreen --> ScheduleService
+  ScheduleScreen --> SystemShareService
+  ScheduleScreen --> DockMenuController
+  EventDetailsScreen --> EventService
+  EventDetailsScreen --> DockMenuController
+  AddActivityScreen --> EventService
+  AddActivityScreen --> DockMenuController
+
+  UserService --> FrontEndFacade
+  EventService --> FrontEndFacade
+  ActivityService --> FrontEndFacade
+  ScheduleService --> FrontEndFacade
+  FrontEndFacade --> APIClient
+  RegistrationRequestBuilder ..> UserRegistrationData
+
+' Notes explaining patterns:
+
+note top of FrontEndFacade
+  **Facade Pattern**:
+  Used to provide a simplified interface for complex backend interactions.
+  The app can call 'FrontEndFacade' methods instead of dealing with multiple
+  endpoints or services directly. This simplifies maintenance and usage.
+end note
+
+note top of APIClient
+  **Proxy Pattern**:
+  The APIClient acts as a proxy to the remote backend services.
+  It can add logging, caching, or error handling before forwarding requests
+  to the actual server, improving flexibility and security.
+end note
+
+note top of RegistrationRequestBuilder
+  **Builder Pattern**:
+  Used to construct complex objects (e.g., user registration data) step-by-step.
+  This reduces errors and complexity when creating objects with multiple
+  optional and required fields.
+end note
+
+
+
+note bottom of UserPreferences
+  This class supports the logic from the FinderPage where user can skip
+  questions and use default preferences. It's not a pattern itself,
+  but supports clean separation of concerns (Single Responsibility Principle).
+end note
+
+@enduml

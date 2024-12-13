@@ -1,0 +1,58 @@
+@startuml
+actor User
+participant "Front-End\n(Mobile/Web/Desktop)" as FE
+participant APIGateway
+participant LoadBalancer as LB
+participant WebServer as WS
+participant "EntertainmentPlannerCore" as Core
+participant "Aggregator Service#" as Agg
+database "EntertainmentPlanner DB\n(EPDB)" as EPDB
+database "EntertainmentDataFirmSupplier\n(EDFSDB)" as EDFSDB
+participant "JS Parser" as Flamingo
+participant "Google MAPS API" as GMaps
+
+== Open Event Description Page ==
+User -> FE: Open Event Description Page
+FE -> APIGateway: GET /api/event/{eventId}
+APIGateway -> LB: Route request
+LB -> WS: /event/{eventId}
+
+note over WS: Request event details
+WS -> Core: getEventDetails(eventId)
+
+note over Core: Fetch data via Aggregator
+Core -> Agg: fetchEventDetails(eventId)
+
+note over Agg: Check EPDB for event data
+Agg -> EPDB: SELECT * FROM events WHERE id=?
+EPDB --> Agg: Return event data (or old/missing data)
+
+alt Data is old or missing
+  Agg -> EDFSDB: SELECT event data by (type+location)
+  EDFSDB --> Agg: Old/No data scenario
+
+  alt Data is old
+    note over Agg: Need fresh data
+    Agg -> Flamingo: requestDataUpdate(eventId)
+    Flamingo -> GMaps: GET updated event info
+    GMaps --> Flamingo: Updated event info
+    Flamingo -> EDFSDB: UPDATE event data in DB
+    EDFSDB --> Flamingo: OK
+    Flamingo --> Agg: Data updated
+    Agg -> EDFSDB: SELECT updated event details
+    EDFSDB --> Agg: Fresh event details
+  else No data at all
+    ' Possibly no results
+    Agg --> Core: No event details found
+  end
+else Data is valid
+  Agg --> Core: Return event details (address, desc, date, price, tags)
+end
+
+Core --> WS: Event details (if found)
+WS --> LB: Event details
+LB --> APIGateway: Event details
+APIGateway --> FE: Event details
+
+FE -> User: Display Event Description (Address,\nText Description, Date, Price, Tags)
+@enduml
